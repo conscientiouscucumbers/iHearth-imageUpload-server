@@ -1,29 +1,77 @@
-// src/components/App/index.js
-import React, { Component } from 'react';
-import classnames from 'classnames';
+import React, { Component, PropTypes, } from 'react';
+import { reduxForm, } from 'redux-form';
 
-import logo from './logo.svg';
-import './style.css';
+import Dropzone from 'react-dropzone';
+
+const FILE_FIELD_NAME = 'files';
+
+export const fields = [FILE_FIELD_NAME,];
 
 class App extends Component {
-  static propTypes = {}
-  static defaultProps = {}
-  state = {}
+
+  static propTypes = {
+    fields: PropTypes.object.isRequired,
+    handleSubmit: PropTypes.func.isRequired,
+    resetForm: PropTypes.func.isRequired,
+  };
+
+  onSubmit(data) {
+    var body = new FormData();
+    Object.keys(data).forEach(( key ) => {
+      body.append(key, data[ key ]);
+    });
+
+    console.info('POST', body, data);
+    console.info('This is expected to fail:');
+    fetch(`http://localhost:3000/`, {
+      method: 'POST',
+      body: body,
+    })
+    .then(res => res.json())
+    .then(res => console.log(res))
+    .catch(err => console.error(err));
+  }
 
   render() {
-    const { className, ...props } = this.props;
+    const {
+      fields,
+      handleSubmit,
+      resetForm,
+    } = this.props;
+    const files = fields[FILE_FIELD_NAME];
     return (
-      <div className={classnames('App', className)} {...props}>
-        <div className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h2>Welcome to React</h2>
+      <form onSubmit={ handleSubmit(this.onSubmit.bind(this)) }>
+        <div>
+          <label>Files</label>
+          <div>
+            <Dropzone
+              onDrop={ ( filesToUpload, e ) => files.onChange(filesToUpload)}
+            >
+              <div>Try dropping some files here, or click to select files to upload.</div>
+            </Dropzone>
+            { files && Array.isArray(files.value) && (
+              <ul>
+                { files.value.map((file, i) => <li key={i}>{file.name}</li>) }
+              </ul>
+            ) }
+          </div>
         </div>
-        <p className="App-intro">
-          To get started, edit <code>src/App.js</code> and save to reload.
-        </p>
-      </div>
+        <div>
+          <button type="submit">
+            Submit
+          </button>
+          <button
+            onClick={ resetForm }
+          >
+            Clear Values
+          </button>
+        </div>
+      </form>
     );
   }
 }
 
-export default App;
+export default reduxForm({
+  form: 'simple',
+  fields,
+})(App);
